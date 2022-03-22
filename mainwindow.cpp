@@ -64,9 +64,12 @@ void MainWindow::setupRealtimeDataDemo(QCustomPlot *customPlot)
   customPlot->legend->setFont(font);
 
   customPlot->addGraph(); // blue line
-  customPlot->graph(0)->setPen(QPen(QColor(40, 110, 255)));
-  customPlot->addGraph(); // yellow line
-  customPlot->graph(1)->setPen(QPen(QColor(200, 200, 0)));
+  QPen pen = QPen(QColor(40, 110, 255));
+  pen.setWidth(2);
+  customPlot->graph(0)->setPen(pen);
+
+  //customPlot->addGraph(); // yellow line
+  //customPlot->graph(1)->setPen(QPen(QColor(200, 200, 0)));
 
   QSharedPointer<QCPAxisTickerTime> timeTicker(new QCPAxisTickerTime);
   timeTicker->setTimeFormat("%s");
@@ -90,6 +93,7 @@ void MainWindow::setupRealtimeDataDemo(QCustomPlot *customPlot)
 void MainWindow::realtimeDataSlot()
 {
     static QTime timeStart = QTime::currentTime();
+    double key = timeStart.msecsTo(QTime::currentTime())/1000.0; // time elapsed since start of demo, in seconds
     // Sine wave parameters
     double inputFreq = 1;  // fake input signal Hz
     inputFreq *= (2 * 3.14159);  // compute cycle for plot verification
@@ -121,6 +125,22 @@ void MainWindow::realtimeDataSlot()
         // at a v/Div scale of 5 (set in the axis range).
         double key = double(k);
         ui->scopeDrawArea->graph(0)->addData(key, data0[k]);
+    }
+
+    // calculate frames per second:
+    static double lastFpsKey;
+    static int frameCount;
+    ++frameCount;
+    if (key-lastFpsKey > 2) // average fps over 2 seconds
+    {
+
+      ui->fps->setText(
+            QString("%1 FPS, Total Data points: %2")
+            .arg(frameCount/(key-lastFpsKey), 0, 'f', 0)
+            .arg(ui->scopeDrawArea->graph(0)->data()->size()+ui->scopeDrawArea->graph(0)->data()->size())
+            );
+      lastFpsKey = key;
+      frameCount = 0;
     }
 
     ui->scopeDrawArea->replot();
